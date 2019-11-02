@@ -2,6 +2,7 @@ import base64
 import hashlib
 import hmac
 import json
+import os
 
 from flask import Flask
 
@@ -10,7 +11,7 @@ app = Flask(__name__)
 @app.route('/', methods=['GET'])
 def example():
     # creates HMAC SHA-256 hash from incomming token and your consumer secret
-  sha256_hash_digest = hmac.new(API_SECRET, msg=request.args.get('crc_token'), digestmod=hashlib.sha256).digest()
+  sha256_hash_digest = hmac.new(os.getenv('API_SECRET'), msg=request.args.get('crc_token'), digestmod=hashlib.sha256).digest()
 
   # construct response data with base64 encoded hash
   response = {
