@@ -14,7 +14,7 @@ def example():
   # creates HMAC SHA-256 hash from incomming token and your consumer secret
   key = bytes(os.getenv('API_SECRET'), 'utf-8')
   msg = request.args.get('crc_token')
-  digest = hmac.new(key, msg=mgs, digestmod=hashlib.sha256).digest()
+  digest = hmac.new(key, msg=msg, digestmod=hashlib.sha256).digest()
 
   # construct response data with base64 encoded hash
   response = {
