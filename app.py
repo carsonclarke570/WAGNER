@@ -12,8 +12,8 @@ app = Flask(__name__)
 @app.route('/', methods=['GET'])
 def example():
   # creates HMAC SHA-256 hash from incomming token and your consumer secret
-  key = bytes(os.getenv('API_SECRET').encode('utf-8'))
-  msg = request.args.get('crc_token')
+  key = bytes(os.getenv('API_SECRET'), 'utf-8')
+  msg = request.args.get('crc_token').encode('utf-8')
   digest = hmac.new(key, msg=msg, digestmod=hashlib.sha256).digest()
 
   # construct response data with base64 encoded hash
