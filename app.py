@@ -10,7 +10,7 @@ from flask import request
 app = Flask(__name__)
 
 @app.route('/', methods=['GET'])
-def example():
+def crc_check():
   # creates HMAC SHA-256 hash from incomming token and your consumer secret
   key = bytes(os.getenv('API_SECRET'), 'utf-8')
   msg = request.args.get('crc_token')
@@ -25,6 +25,11 @@ def example():
 
   # returns properly formatted json response
   return json.dumps(response)
+
+@app.route('/', methods=['POST'])
+def trigger():
+
+  return json.dumps({})
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
