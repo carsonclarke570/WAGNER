@@ -1,6 +1,6 @@
-# trash-post
+# Trigger
 
-A Twitter web-hook for Raspberry Pi that plays a sound and reads tweets.
+A python Flask API designed to trigger various events on a Raspberry Pi.
 
 ## Requirements
 

@@ -8,4 +8,4 @@ WORKDIR /app
 RUN pip install -r requirements.txt
 
 ENTRYPOINT [ "python" ]
-CMD [ "app.py" ]
+CMD [ "src/api.py" ]
