@@ -7,9 +7,11 @@
 import threading
 import pygame
 import os
+import time
 
 from abc import ABC, abstractmethod 
 from gtts import gTTS
+from io import BytesIO
 
 class WorkerError(Exception):
     """Exception to handle errors in the Worker class"""
@@ -106,6 +108,7 @@ class SoundWorker(Worker):
     def setup():
         """ Initialize pygame"""
         pygame.init()
+        pygame.mixer.init()
 
     def teardown():
         """ Tear down pygame"""
@@ -113,7 +116,7 @@ class SoundWorker(Worker):
 
     def run(self):
         """ Plays a sound from the ./sounds folder """
-        path = self.__file__ + "/sounds/" + self.args["sound"] + ".wav"
+        path = os.path.dirname(__file__) + "/sounds/" + self.args["sound"] + ".wav"
         
         self.app.logger.info(f"SoundWorker: Running sound file from '{path}'")
         sound = pygame.mixer.Sound(path)
@@ -126,19 +129,24 @@ class SoundWorker(Worker):
         
 class MessageWorker(Worker):
     """ Plays a text to speech of a message passed in"""
+    WORKER_ID = "message"
 
     def run(self):
         """ Converts and saves a message to a .wav file and plays it"""
         # Create an save a TTS .wav file of the message
-        tts_obj = gTTS(text=self.args["message"], lang='en', slow=False)
-        tts_obj.save("temp.wav")
+        tts = gTTS(text=self.args["message"], lang='en', slow=False)
+        fp = BytesIO()
+        tts.write_to_fp(fp)
+        fp.seek(0)
 
         # Use pygame to play the file
-        sound = pygame.mixer.Sound("temp.wav")
-        sound.play()
-
-        # Delete file
-        os.remove("temp.wav")
+        pygame.mixer.music.load(fp)
+        pygame.mixer.music.play()
+        
+        while pygame.mixer.music.get_busy():
+            time.sleep(0.5)
+        
+        fp.close()
 
     def validate(self):
         """ Ensures the SoundWorker has a 'message' parameter """
