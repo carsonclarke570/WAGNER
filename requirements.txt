@@ -1,2 +1,4 @@
 Flask==1.1.1
+gTTS==2.0.4
 gunicorn==19.9.0
+pygame==1.9.6

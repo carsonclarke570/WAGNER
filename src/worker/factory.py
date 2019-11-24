@@ -14,15 +14,26 @@ class WorkerFactory:
 
     @staticmethod
     def setup(app):
+        """ Calls setup() on all Worker modules
+        
+        Args:
+            app - The current Flask application
+        """
         types = Worker.__subclasses__()
         for subclass in types:
-            app.logger.info(f"Setting up '{subclass}' module")
+            app.logger.info(f"Setting up '{subclass.WORKER_ID}' module")
             subclass.setup()
             
     @staticmethod
     def teardown(app):
+        """Calls teardown() on all Worker modules
+        
+        Args:
+            app - The current Flask application
+        """
         types = Worker.__subclasses__()
         for subclass in types:
+            app.logger.info(f"Tearing down '{subclass.WORKER_ID}' module")
             subclass.teardown()
 
     @staticmethod

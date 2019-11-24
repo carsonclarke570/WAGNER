@@ -30,4 +30,6 @@ def ping():
   return Response('OK', status=200, mimetype='text/plain')
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+  WorkerFactory.setup(app)
+  app.run(debug=True, host='0.0.0.0')
+  WorkerFactory.teardown(app)

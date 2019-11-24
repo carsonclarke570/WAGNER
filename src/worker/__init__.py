@@ -5,8 +5,11 @@
     parameters.
 """
 import threading
+import pygame
+import os
 
 from abc import ABC, abstractmethod 
+from gtts import gTTS
 
 class WorkerError(Exception):
     """Exception to handle errors in the Worker class"""
@@ -44,10 +47,13 @@ class Worker(ABC):
         
     @staticmethod
     def setup():
+        """ If the worker requires some sort of global set up, implement this function"""
         pass
         
     @staticmethod
     def teardown():
+        """ If the worker requires some sort of global tear down, implement this 
+        function"""
         pass
 
     def start(self):
@@ -93,9 +99,49 @@ class PrintWorker(Worker):
         if "message" not in self.args:
             raise WorkerError(f"'message' argument required")
             
-class MessageWorker(Worker):
+class SoundWorker(Worker):
+    """ Plays a sound to the terminal """
+    WORKER_ID = "sound"
     
-    WORKER_ID = "message"
-    
+    def setup():
+        """ Initialize pygame"""
+        pygame.init()
+
+    def teardown():
+        """ Tear down pygame"""
+        pygame.quit()
+
     def run(self):
+        """ Plays a sound from the ./sounds folder """
+        path = self.__file__ + "/sounds/" + self.args["sound"] + ".wav"
         
+        self.app.logger.info(f"SoundWorker: Running sound file from '{path}'")
+        sound = pygame.mixer.Sound(path)
+        sound.play()
+
+    def validate(self):
+        """ Ensures SoundWorker has a `sound' parameter"""
+        if "sound" not in self.args:
+            raise WorkerError(f"'sound' argument required")
+        
+class MessageWorker(Worker):
+    """ Plays a text to speech of a message passed in"""
+
+    def run(self):
+        """ Converts and saves a message to a .wav file and plays it"""
+        # Create an save a TTS .wav file of the message
+        tts_obj = gTTS(text=self.args["message"], lang='en', slow=False)
+        tts_obj.save("temp.wav")
+
+        # Use pygame to play the file
+        sound = pygame.mixer.Sound("temp.wav")
+        sound.play()
+
+        # Delete file
+        os.remove("temp.wav")
+
+    def validate(self):
+        """ Ensures the SoundWorker has a 'message' parameter """
+        if "message" not in self.args:
+            raise WorkerError(f"'message' argument required")
+            
