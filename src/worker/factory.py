@@ -13,6 +13,19 @@ class WorkerFactory:
     """Implements a factory design patten for Workers"""
 
     @staticmethod
+    def setup(app):
+        types = Worker.__subclasses__()
+        for subclass in types:
+            app.logger.info(f"Setting up '{subclass}' module")
+            subclass.setup()
+            
+    @staticmethod
+    def teardown(app):
+        types = Worker.__subclasses__()
+        for subclass in types:
+            subclass.teardown()
+
+    @staticmethod
     def build(app, id, args):
         """ Attempts to build a Worker class from a given WORKER_ID and set of arguments.
 

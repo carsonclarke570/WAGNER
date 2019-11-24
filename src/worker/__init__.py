@@ -41,6 +41,14 @@ class Worker(ABC):
     def validate(self):
         """ Validates the fields passed in through the args parameters """
         raise NotImplementedError
+        
+    @staticmethod
+    def setup():
+        pass
+        
+    @staticmethod
+    def teardown():
+        pass
 
     def start(self):
         """ Starts a thread targetting the workers run() function"""
@@ -84,3 +92,10 @@ class PrintWorker(Worker):
         """ Ensures the PrintWorker has a 'message' parameter """
         if "message" not in self.args:
             raise WorkerError(f"'message' argument required")
+            
+class MessageWorker(Worker):
+    
+    WORKER_ID = "message"
+    
+    def run(self):
+        
