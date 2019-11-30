@@ -3,6 +3,8 @@
     Provides a factory to build Worker classes from a given WORKER_ID and dictionary of 
     arguments.
 """
+import logging
+
 from . import Worker, WorkerError
 
 class FactoryError(Exception):
@@ -12,36 +14,26 @@ class FactoryError(Exception):
 class WorkerFactory:
     """Implements a factory design patten for Workers"""
 
-    @staticmethod
-    def setup(app):
-        """ Calls setup() on all Worker modules
-        
-        Args:
-            app - The current Flask application
-        """
-        types = Worker.__subclasses__()
-        for subclass in types:
-            app.logger.info(f"Setting up '{subclass.WORKER_ID}' module")
-            subclass.setup()
-            
-    @staticmethod
-    def teardown(app):
-        """Calls teardown() on all Worker modules
-        
-        Args:
-            app - The current Flask application
-        """
-        types = Worker.__subclasses__()
-        for subclass in types:
-            app.logger.info(f"Tearing down '{subclass.WORKER_ID}' module")
-            subclass.teardown()
+    REGISTRY = {}
 
-    @staticmethod
-    def build(app, id, args):
+    @classmethod
+    def init(cls):
+        """ Initialize the factory by populating the module registry"""
+        cls.REGISTRY = {}
+
+        # Recursely gather all submodules
+        def recurse(subclasses):
+            for subclass in subclasses:
+                cls.REGISTRY[subclass.WORKER_ID] = subclass
+                recurse(subclass.__subclasses__())
+
+        recurse(Worker.__subclasses__())
+            
+    @classmethod
+    def build(cls, id, args, pid, background):
         """ Attempts to build a Worker class from a given WORKER_ID and set of arguments.
 
         Args:
-            app - The current flask application
             id - The WORKER_ID of the class to build.
             args - A dictionary of arguments
 
@@ -52,19 +44,15 @@ class WorkerFactory:
             FactoryError: If unable to build the Worker class
         """
         # Attempt to find the Worker subclass from the given id
-        types = Worker.__subclasses__()
-        derived_class = None
-        for subclass in types:
-            if subclass.WORKER_ID == id:
-                derived_class = subclass(app, args)
-
-        if derived_class is None:
-            raise FactoryError(f"Failed to build for Worker ID '{id}'")
+        class_type = cls.REGISTRY.get(id, None)
+        if class_type is None:
+            raise FactoryError(f"No worker found for WORKER_ID '{id}'")
         
         # Validate the class
+        worker = class_type(args, pid, background)
         try:
-            derived_class.validate()
+            worker.validate()
         except WorkerError as e:
             raise FactoryError(f"Error validating worker: {str(e)}")
         
-        return derived_class
+        return worker

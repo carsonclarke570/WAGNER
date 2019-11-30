@@ -5,7 +5,7 @@
     parameters.
 """
 import threading
-import pygame
+import logging
 import os
 import time
 
@@ -18,24 +18,28 @@ class WorkerError(Exception):
     pass
 
 class Worker(ABC):
-    """ Workers are wrappers for code segments that run in their own thread"""
+    """ Workers are wrappers for code segments that run in their own thread
+    """
 
     # Every Worker should implement WORKER_ID
     WORKER_ID = ""
 
-    def __init__(self, app, args):
+    def __init__(self, args, pid, background=False):
         """ Construct a new Worker class
         
             Args:
-                app - The current flask application
-                args - A dictionary of arguments to pull parameters from
-
+                args (Dict) - A dictionary of arguments to pull parameters from
+                background (bool) - Boolean determining whether or not run in a thread
             Returns:
                 A new Worker
         """
-        self.app = app
         self.args = args
-        self.thread = None
+        self.background = background
+        self.pid = pid
+        if background:
+            self.thread = threading.Thread(target=self.run)
+        else:
+            self.thread = None
 
     @abstractmethod
     def run(self):
@@ -47,27 +51,26 @@ class Worker(ABC):
         """ Validates the fields passed in through the args parameters """
         raise NotImplementedError
         
-    @staticmethod
-    def setup():
-        """ If the worker requires some sort of global set up, implement this function"""
+    def setup(self):
+        """ If the worker requires some sort of set up, implement this function"""
         pass
         
-    @staticmethod
-    def teardown():
-        """ If the worker requires some sort of global tear down, implement this 
+    def teardown(self):
+        """ If the worker requires some sort of tear down, implement this 
         function"""
         pass
 
     def start(self):
         """ Starts a thread targetting the workers run() function"""
-        self.app.logger.info(f"Starting worker '{self.WORKER_ID}'")
-        if self.thread is None:
-            self.thread = threading.Thread(target=self.run)
-        
-        try:
-            self.thread.start()
-        except RuntimeError as e:
-            raise WorkerError(f"Failed to start worker '{self.WORKER_ID}': " + str(e))
+        if self.background:
+            logging.info(f"Process {self.pid} - Starting worker '{self.WORKER_ID}' in the background")
+            try:
+                self.thread.start()
+            except RuntimeError as e:
+                raise WorkerError(f"Failed to start worker '{self.WORKER_ID}': " + str(e))
+        else:
+            logging.info(f"Process {self.pid} - Starting worker '{self.WORKER_ID}'")
+            self.run()
 
     def join(self, timeout=None):
         """ Calls join on the worker's thread with a specified timeout
@@ -75,17 +78,14 @@ class Worker(ABC):
             Args:
                 timeout - The time in seconds to wait for the thread to join
         """
-        self.app.logger.info(f"Joining worker '{self.WORKER_ID}'")
-        if self.thread is not None:
-            try:
-                if timeout is None:
-                    self.thread.join()
-                else:
-                    self.thread.join(timeout=timeout)
-            except RuntimeError as e:
-                raise WorkerError(f"Failed to join worker '{self.WORKER_ID}': " + str(e))
-        else:
-            self.app.logger.warning(f"No thread to join")
+        logging.info(f"Joining worker '{self.WORKER_ID}'")
+        if not self.background:
+            return
+
+        try:
+            self.thread.join(timeout=timeout)
+        except RuntimeError as e:
+            raise WorkerError(f"Failed to join worker '{self.WORKER_ID}': " + str(e))
         
 class PrintWorker(Worker):
     """ Prints a message to the terminal"""
@@ -101,55 +101,54 @@ class PrintWorker(Worker):
         if "message" not in self.args:
             raise WorkerError(f"'message' argument required")
             
-class SoundWorker(Worker):
-    """ Plays a sound to the terminal """
-    WORKER_ID = "sound"
-    
-    def setup():
-        """ Initialize pygame"""
-        pygame.init()
-        pygame.mixer.init()
+# class SoundWorker(Worker):
+#     """ Plays a sound to the terminal """
+#     WORKER_ID = "sound"
 
-    def teardown():
-        """ Tear down pygame"""
-        pygame.quit()
+#     def run(self):
+#         """ Plays a sound from the ./sounds folder """
+#         path = os.path.dirname(__file__) + "/sounds/" + self.args["sound"] + ".wav"
+#         sound = pygame.mixer.Sound(path)
+#         sound.play()
 
-    def run(self):
-        """ Plays a sound from the ./sounds folder """
-        path = os.path.dirname(__file__) + "/sounds/" + self.args["sound"] + ".wav"
+#     def validate(self):
+#         """ Ensures SoundWorker has a `sound' parameter"""
+#         if "sound" not in self.args:
+#             raise WorkerError(f"'sound' argument required")
         
-        self.app.logger.info(f"SoundWorker: Running sound file from '{path}'")
-        sound = pygame.mixer.Sound(path)
-        sound.play()
+# class MessageWorker(Worker):
+#     """ Plays a text to speech of a message passed in"""
+#     WORKER_ID = "message"
 
-    def validate(self):
-        """ Ensures SoundWorker has a `sound' parameter"""
-        if "sound" not in self.args:
-            raise WorkerError(f"'sound' argument required")
+#     def __init__(self, args, pid, background=False):
+#         """ Construct a new MessageWorker class
         
-class MessageWorker(Worker):
-    """ Plays a text to speech of a message passed in"""
-    WORKER_ID = "message"
+#             Args:
+#                 args (Dict) - A dictionary of arguments to pull parameters from
+#                 background (bool) - Boolean determining whether or not run in a thread
+#             Returns:
+#                 A new MessageWorker
+#         """
+#         self.fp = BytesIO()
+#         super().__init__(args, pid, background)
 
-    def run(self):
-        """ Converts and saves a message to a .wav file and plays it"""
-        # Create an save a TTS .wav file of the message
-        tts = gTTS(text=self.args["message"], lang='en', slow=False)
-        fp = BytesIO()
-        tts.write_to_fp(fp)
-        fp.seek(0)
+#     def setup(self):
+#         """ Begin the text to speech conversion """
+#         tts = gTTS(text=self.args["message"], lang='en', slow=False)
+#         tts.write_to_fp(self.fp)
+#         self.fp.seek(0)
 
-        # Use pygame to play the file
-        pygame.mixer.music.load(fp)
-        pygame.mixer.music.play()
-        
-        while pygame.mixer.music.get_busy():
-            time.sleep(0.5)
-        
-        fp.close()
+#     def teardown(self):
+#         """ Dispose of the file pointer """
+#         self.fp.close()
 
-    def validate(self):
-        """ Ensures the SoundWorker has a 'message' parameter """
-        if "message" not in self.args:
-            raise WorkerError(f"'message' argument required")
+#     def run(self):
+#         """ Converts and saves a message to a .wav file and plays it"""
+#         pygame.mixer.music.load(self.fp)
+#         pygame.mixer.music.play()
+
+#     def validate(self):
+#         """ Ensures the SoundWorker has a 'message' parameter """
+#         if "message" not in self.args:
+#             raise WorkerError(f"'message' argument required")
             
