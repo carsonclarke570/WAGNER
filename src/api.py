@@ -27,8 +27,8 @@ def ping():
 
 if __name__ == '__main__':
   # Init stuff
-  # pygame.init()
-  # pygame.mixer.init()
+  pygame.init()
+  pygame.mixer.init()
   WorkerFactory.init()
   
   app.run(debug=True, host='0.0.0.0')
