@@ -159,3 +159,15 @@ class MessageWorker(Worker):
         if "message" not in self.args:
             raise WorkerError(f"'message' argument required")
             
+class WaitWorker(Worker):
+    """ Sleeps """
+    WORKER_ID = "wait"
+
+    def run(self):
+        """ Sleeps """
+        time.sleep(self.args["time"])
+
+    def validate(self):
+        """ Ensures the WaitWorker has a 'wait' parameter """
+        if "time" not in self.args:
+            raise WorkerError(f"'time' argument required")
