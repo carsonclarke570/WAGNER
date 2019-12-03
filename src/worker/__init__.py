@@ -159,7 +159,7 @@ class MessageWorker(Worker):
             raise WorkerError(f"'message' argument required")
             
 class WaitWorker(Worker):
-    """ Sleeps """
+    """ Sleeps"""
     WORKER_ID = "wait"
 
     def run(self):
