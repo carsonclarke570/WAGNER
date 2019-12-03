@@ -101,54 +101,60 @@ class PrintWorker(Worker):
         if "message" not in self.args:
             raise WorkerError(f"'message' argument required")
             
-# class SoundWorker(Worker):
-#     """ Plays a sound to the terminal """
-#     WORKER_ID = "sound"
+class SoundWorker(Worker):
+    """ Plays a sound to the terminal """
+    WORKER_ID = "sound"
 
-#     def run(self):
-#         """ Plays a sound from the ./sounds folder """
-#         path = os.path.dirname(__file__) + "/sounds/" + self.args["sound"] + ".wav"
-#         sound = pygame.mixer.Sound(path)
-#         sound.play()
+    def run(self):
+        """ Plays a sound from the ./sounds folder """
+        path = os.path.dirname(__file__) + "/sounds/" + self.args["sound"] + ".wav"
+        sound = pygame.mixer.Sound(path)
+        sound.play()
+        if not self.background:
+            while pygame.mixer.get_busy():
+                time.sleep(0.25)
 
-#     def validate(self):
-#         """ Ensures SoundWorker has a `sound' parameter"""
-#         if "sound" not in self.args:
-#             raise WorkerError(f"'sound' argument required")
+    def validate(self):
+        """ Ensures SoundWorker has a `sound' parameter"""
+        if "sound" not in self.args:
+            raise WorkerError(f"'sound' argument required")
         
-# class MessageWorker(Worker):
-#     """ Plays a text to speech of a message passed in"""
-#     WORKER_ID = "message"
+class MessageWorker(Worker):
+    """ Plays a text to speech of a message passed in"""
+    WORKER_ID = "message"
 
-#     def __init__(self, args, pid, background=False):
-#         """ Construct a new MessageWorker class
+    def __init__(self, args, pid, background=False):
+        """ Construct a new MessageWorker class
         
-#             Args:
-#                 args (Dict) - A dictionary of arguments to pull parameters from
-#                 background (bool) - Boolean determining whether or not run in a thread
-#             Returns:
-#                 A new MessageWorker
-#         """
-#         self.fp = BytesIO()
-#         super().__init__(args, pid, background)
+            Args:
+                args (Dict) - A dictionary of arguments to pull parameters from
+                background (bool) - Boolean determining whether or not run in a thread
+            Returns:
+                A new MessageWorker
+        """
+        self.fp = BytesIO()
+        super().__init__(args, pid, background)
 
-#     def setup(self):
-#         """ Begin the text to speech conversion """
-#         tts = gTTS(text=self.args["message"], lang='en', slow=False)
-#         tts.write_to_fp(self.fp)
-#         self.fp.seek(0)
+    def setup(self):
+        """ Begin the text to speech conversion """
+        tts = gTTS(text=self.args["message"], lang='en', slow=False)
+        tts.write_to_fp(self.fp)
+        self.fp.seek(0)
 
-#     def teardown(self):
-#         """ Dispose of the file pointer """
-#         self.fp.close()
+    def teardown(self):
+        """ Dispose of the file pointer """
+        self.fp.close()
 
-#     def run(self):
-#         """ Converts and saves a message to a .wav file and plays it"""
-#         pygame.mixer.music.load(self.fp)
-#         pygame.mixer.music.play()
+    def run(self):
+        """ Converts and saves a message to a .wav file and plays it"""
+        pygame.mixer.music.load(self.fp)
+        pygame.mixer.music.play()
+        if not self.background:
+            while pygame.mixer.get_busy():
+                time.sleep(0.25)
 
-#     def validate(self):
-#         """ Ensures the SoundWorker has a 'message' parameter """
-#         if "message" not in self.args:
-#             raise WorkerError(f"'message' argument required")
+    def validate(self):
+        """ Ensures the SoundWorker has a 'message' parameter """
+        if "message" not in self.args:
+            raise WorkerError(f"'message' argument required")
             
