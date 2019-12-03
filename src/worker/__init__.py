@@ -151,7 +151,7 @@ class MessageWorker(Worker):
         pygame.mixer.music.load(self.fp)
         pygame.mixer.music.play()
         if not self.background:
-            while pygame.mixer.get_busy():
+            while pygame.mixer.music.get_busy():
                 time.sleep(0.25)
 
     def validate(self):
